@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-num = { version = "0.4" }
 image = { version = "0.25", features = ["png"] }
 anyhow = { version = "1" }
 clap = { version = "4" }

@@ -1,8 +1,50 @@
-use std::{fs::File, str::FromStr};
+use std::{fs::File, ops::{Add, Mul, Sub}, str::FromStr};
 
 use clap::Arg;
 use image::{codecs::png::PngEncoder, ImageEncoder};
-use num::Complex;
+
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+struct Complex<T> {
+    re: T,
+    im: T,
+}
+
+impl<T> Complex<T> {
+    fn new(re: T, im: T) -> Self{
+        Complex { re, im }
+    }
+
+    fn norm_sqr(&self) -> T
+    where T: Mul<Output = T> + Add<Output = T> + Copy
+    {
+        self.re * self.re + self.im * self.im
+    }
+}
+
+impl<T> Mul for Complex<T> 
+where T: Add<Output = T> + Mul<Output = T> + Sub<Output = T> + Copy
+{
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self::Output {
+        Complex{
+            re: self.re * rhs.re - self.im * rhs.im,
+            im: self.re * rhs.im + self.im * rhs.re,
+        }
+    }
+}
+
+impl <T> Add for Complex<T>
+where T: Add<Output = T>
+{
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        Complex{
+            re: self.re + rhs.re,
+            im: self.im + rhs.im
+        }
+    }
+}
 
 /// `c`가 만델브로 집합에 속하는지 아닌지를 판단하며,
 /// 결론 내리는 데 필요한 반복 횟수는 최대 `limit`회로 제한한다.
