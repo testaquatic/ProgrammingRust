@@ -217,7 +217,7 @@ fn main() {
 
     {
         let bands = pixels
-            .chunks_exact_mut(rows_per_band * args.pixel.0)
+            .chunks_mut(rows_per_band * args.pixel.0)
             .collect::<Vec<_>>();
         crossbeam::scope(|spawner| {
             for (i, band) in bands.into_iter().enumerate() {
