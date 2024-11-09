@@ -1,0 +1,10 @@
+[package]
+name = "http_get"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { version = "1" }
+clap = { version = "4" }
+reqwest = { version = "0.12" }
+tokio = { version = "1", features = ["rt-multi-thread", "io-std", "macros"] }
