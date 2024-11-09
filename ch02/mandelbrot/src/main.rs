@@ -1,8 +1,12 @@
-use std::{fs::File, ops::{Add, Mul, Sub}, str::FromStr};
+use std::{
+    fs::File,
+    ops::{Add, Mul, Sub},
+    str::FromStr,
+};
 
 use clap::Arg;
 use image::{codecs::png::PngEncoder, ImageEncoder};
-
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 struct Complex<T> {
@@ -11,37 +15,40 @@ struct Complex<T> {
 }
 
 impl<T> Complex<T> {
-    fn new(re: T, im: T) -> Self{
+    fn new(re: T, im: T) -> Self {
         Complex { re, im }
     }
 
     fn norm_sqr(&self) -> T
-    where T: Mul<Output = T> + Add<Output = T> + Copy
+    where
+        T: Mul<Output = T> + Add<Output = T> + Copy,
     {
         self.re * self.re + self.im * self.im
     }
 }
 
-impl<T> Mul for Complex<T> 
-where T: Add<Output = T> + Mul<Output = T> + Sub<Output = T> + Copy
+impl<T> Mul for Complex<T>
+where
+    T: Add<Output = T> + Mul<Output = T> + Sub<Output = T> + Copy,
 {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
-        Complex{
+        Complex {
             re: self.re * rhs.re - self.im * rhs.im,
             im: self.re * rhs.im + self.im * rhs.re,
         }
     }
 }
 
-impl <T> Add for Complex<T>
-where T: Add<Output = T>
+impl<T> Add for Complex<T>
+where
+    T: Add<Output = T>,
 {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
-        Complex{
+        Complex {
             re: self.re + rhs.re,
-            im: self.im + rhs.im
+            im: self.im + rhs.im,
         }
     }
 }
@@ -175,7 +182,7 @@ struct Args {
     pixel: (usize, usize),
     upper_left: Complex<f64>,
     lower_right: Complex<f64>,
-    thread: usize,
+    _thread: usize,
 }
 
 /// 명령줄의 인수를 파싱한다.
@@ -235,7 +242,7 @@ fn get_args() -> Option<Args> {
         pixel: matches.get_one("pixel").cloned()?,
         upper_left: matches.get_one("upper_left").cloned()?,
         lower_right: matches.get_one("lower_right").cloned()?,
-        thread: matches.get_one("thread").cloned()?,
+        _thread: matches.get_one("thread").cloned()?,
     };
 
     Some(args)
@@ -254,33 +261,25 @@ fn main() {
 
     let mut pixels = vec![0; args.pixel.0 * args.pixel.1];
 
-    let threads = args.thread;
-    let rows_per_band = args.pixel.1 / threads + 1;
-
     {
         let bands = pixels
-            .chunks_mut(rows_per_band * args.pixel.0)
+            .chunks_mut(args.pixel.0)
+            .enumerate()
             .collect::<Vec<_>>();
-        crossbeam::scope(|spawner| {
-            for (i, band) in bands.into_iter().enumerate() {
-                let top = rows_per_band * i;
-                let height = band.len() / args.pixel.0;
-                let band_bounds = (args.pixel.0, height);
-                let band_upper_left =
-                    pixel_to_point(args.pixel, (0, top), args.upper_left, args.lower_right);
-                let band_lower_right = pixel_to_point(
-                    args.pixel,
-                    (args.pixel.0, top + height),
-                    args.upper_left,
-                    args.lower_right,
-                );
 
-                spawner.spawn(move |_| {
-                    render(band, band_bounds, band_upper_left, band_lower_right);
-                });
-            }
-        })
-        .unwrap();
+        bands.into_par_iter().for_each(|(i, band)| {
+            let top = i;
+            let band_bounds = (args.pixel.0, 1);
+            let band_upper_left =
+                pixel_to_point(args.pixel, (0, top), args.upper_left, args.lower_right);
+            let band_lower_right = pixel_to_point(
+                args.pixel,
+                (args.pixel.0, top + 1),
+                args.upper_left,
+                args.lower_right,
+            );
+            render(band, band_bounds, band_upper_left, band_lower_right);
+        });
     }
 
     write_image(&args.filename, &pixels, args.pixel).expect("error writing PNG file");

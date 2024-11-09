@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-image = { version = "0.25", features = ["png"] }
 anyhow = { version = "1" }
 clap = { version = "4" }
-crossbeam = { version = "0.8" }
+image = { version = "0.25", features = ["png"] }
+rayon = { version = "1" }
