@@ -28,6 +28,7 @@ impl IndexFileWriter {
         })
     }
 
+    /// writer에 buf의 내용을 쓴다.
     pub fn write_main(&mut self, buf: &[u8]) -> Result<(), io::Error> {
         self.writer.write_all(buf)?;
         self.offset += buf.len() as u64;

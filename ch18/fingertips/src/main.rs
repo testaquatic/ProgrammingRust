@@ -1,8 +1,3 @@
-mod index;
-mod merge;
-mod tmp;
-mod write;
-
 use std::{
     fs::File,
     io::{self, Read},
@@ -13,10 +8,9 @@ use std::{
 };
 
 use clap::{Arg, ArgAction, Command};
-use index::InMemoryIndex;
-use merge::FileMerge;
-use tmp::TmpDir;
-use write::write_index_to_tmp_file;
+use fingertips::{
+    index::InMemoryIndex, merge::FileMerge, tmp::TmpDir, write::write_index_to_tmp_file,
+};
 
 /// 인수 목록
 #[derive(Debug)]
@@ -176,14 +170,13 @@ fn start_file_indexing_thread(
         texts
             .into_iter()
             .enumerate()
-            .map_while(|(doc_id, text)| {
+            .try_for_each(|(doc_id, text)| {
                 let index = InMemoryIndex::from_single_document(doc_id, text);
                 if sender.send(index).is_err() {
-                    return None;
+                    return ControlFlow::Break(());
                 }
-                Some(())
-            })
-            .for_each(|_| {});
+                ControlFlow::Continue(())
+            });
     });
     (receiver, handle)
 }
@@ -207,9 +200,9 @@ fn start_in_memory_merge_thread(
                     ControlFlow::Continue(accumulated_index)
                 });
         if let ControlFlow::Continue(accumulated_index) = flow {
-            accumulated_index.is_empty().not().then(|| {
+            if !accumulated_index.is_empty() {
                 let _ = sender.send(accumulated_index);
-            });
+            }
         }
     });
 
