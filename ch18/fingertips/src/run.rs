@@ -1,6 +1,16 @@
-use std::{fs::File, io::{self, Read}, ops::ControlFlow, path::{Path, PathBuf}, sync::mpsc::{self, channel, Receiver}, thread::{self, spawn, JoinHandle}};
+use std::{
+    fs::File,
+    io::{self, Read},
+    ops::ControlFlow,
+    path::{Path, PathBuf},
+    sync::mpsc::{self, Receiver},
+    thread::{self, spawn, JoinHandle},
+};
 
-use crate::{index::InMemoryIndex, merge::FileMerge, parse_args::Args, tmp::TmpDir, write::write_index_to_tmp_file};
+use crate::{
+    index::InMemoryIndex, merge::FileMerge, parse_args::Args, tmp::TmpDir,
+    write::write_index_to_tmp_file,
+};
 
 /// 순회할 파일 목록을 작성한다.
 /// `io::Result<()>` 보다 `Result<(), io::Error>` 이 가독성이 나은 것 같아서 대신 사용한다.
@@ -8,7 +18,7 @@ use crate::{index::InMemoryIndex, merge::FileMerge, parse_args::Args, tmp::TmpDi
 /// 흐름을 따라서 쭉 읽으면 코드가 바로 파악된다.
 fn expand_filename_arguments(args_filenames: &[String]) -> Result<Vec<PathBuf>, io::Error> {
     args_filenames
-        .into_iter()
+        .iter()
         .map(PathBuf::from)
         .try_fold(vec![], |mut filenames, path| {
             if path.metadata()?.is_dir() {
@@ -86,7 +96,7 @@ fn run_pipeline(documents: Vec<PathBuf>, output_dir: PathBuf) -> io::Result<()> 
 fn start_file_reader_thread(
     documents: Vec<PathBuf>,
 ) -> (Receiver<String>, JoinHandle<Result<(), io::Error>>) {
-    let (sender, receiver) = mpsc::channel();
+    let (sender, receiver) = mpsc::sync_channel(1000);
 
     let handle = thread::spawn(move || {
         documents
@@ -116,7 +126,7 @@ fn start_file_reader_thread(
 fn start_file_indexing_thread(
     texts: Receiver<String>,
 ) -> (Receiver<InMemoryIndex>, JoinHandle<()>) {
-    let (sender, receiver) = mpsc::channel();
+    let (sender, receiver) = mpsc::sync_channel(1000);
 
     let handle = thread::spawn(move || {
         texts
@@ -136,7 +146,7 @@ fn start_file_indexing_thread(
 fn start_in_memory_merge_thread(
     file_indexes: Receiver<InMemoryIndex>,
 ) -> (Receiver<InMemoryIndex>, JoinHandle<()>) {
-    let (sender, receiver) = channel();
+    let (sender, receiver) = mpsc::sync_channel(1000);
     let handle = spawn(move || {
         let flow =
             file_indexes
@@ -165,7 +175,7 @@ fn start_index_writer_thread(
     big_indexes: Receiver<InMemoryIndex>,
     output_dir: &Path,
 ) -> (Receiver<PathBuf>, JoinHandle<Result<(), io::Error>>) {
-    let (sender, reciever) = channel();
+    let (sender, reciever) = mpsc::sync_channel(1000);
     let mut tmp_dir = TmpDir::new(output_dir);
     let handle = spawn(move || {
         big_indexes

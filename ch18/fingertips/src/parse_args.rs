@@ -15,7 +15,7 @@ impl Args {
     pub fn filename(&self) -> &[String] {
         &self.filename
     }
- }
+}
 
 /// 커맨드라인에서 Args를 생성한다.
 pub fn parse_args() -> Args {
