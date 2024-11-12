@@ -51,7 +51,7 @@ impl InMemoryIndex {
 
     pub fn merge(&mut self, other: InMemoryIndex) {
         other.map.into_iter().for_each(|(term, hits)| {
-            self.map.entry(term).or_insert_with(Vec::new).extend(hits);
+            self.map.entry(term).or_default().extend(hits);
         });
 
         self.word_count += other.word_count;

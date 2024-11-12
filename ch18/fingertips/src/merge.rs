@@ -103,7 +103,7 @@ fn merge_stream(files: Vec<PathBuf>, out: BufWriter<File>) -> Result<(), io::Err
             .iter_mut()
             .filter(|s| s.is_at(&term))
             .try_for_each(|s| {
-                s.move_entry_to(&mut *&mut output)?;
+                s.move_entry_to(&mut output)?;
                 if s.peek().is_none() {
                     count -= 1;
                 }
