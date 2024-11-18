@@ -1,0 +1,13 @@
+[package]
+name = "cheapo_request"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.41", features = [
+    "macros",
+    "rt-multi-thread",
+    "net",
+    "io-util",
+    "rt",
+] }
