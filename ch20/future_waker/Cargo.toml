@@ -1,0 +1,8 @@
+[package]
+name = "future_waker"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+crossbeam = { version = "0.8" }
+waker-fn = { version = "1" }
