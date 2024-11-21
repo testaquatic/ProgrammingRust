@@ -1,6 +1,9 @@
 #![recursion_limit = "256"]
 
-use std::collections::HashMap;
+pub use std::collections::HashMap;
+pub use std::boxed::Box;
+pub use std::string::ToString;
+
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Json {
@@ -15,18 +18,20 @@ pub enum Json {
 #[macro_export]
 macro_rules! json {
     (null) => {
-        Json::Null
+        $crate::Json::Null
     };
     ([ $( $element:tt ),* ]) => {
-        Json::Array(vec![$( json!($element) ),*])
+        $crate::Json::Array(vec![$( json!($element) ),*])
     };
     ({ $( $key:tt : $value:tt),* }) => {
-        Json::Object(Box::new(
-            vec![$( ($key.to_string(), json!($value)) ),*].into_iter().collect()
-        ))
+        {   
+            let mut fields = $crate::Box::new($crate::HashMap::new());
+            $( fields.insert($crate::ToString::to_string($key), json!($value)); )*
+            $crate::Json::Object(fields)
+        }
     };
     ($other:tt) => {
-        Json::from($other)
+        $crate::Json::from($other)
     };
 }
 
