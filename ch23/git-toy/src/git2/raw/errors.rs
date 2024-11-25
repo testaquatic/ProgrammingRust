@@ -1,6 +1,5 @@
 use std::ffi::{c_char, c_int};
 
-
 #[allow(non_camel_case_types)]
 #[repr(C)]
 pub struct git_error {

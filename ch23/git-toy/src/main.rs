@@ -1,13 +1,5 @@
-use std::{
-    ffi::{c_char, CString},
-    mem, ptr,
-};
-
 use clap::{Arg, Command};
-use git_toy::{
-    helpers::{check, show_commit},
-    raw,
-};
+use git_toy::git2::types::Repository;
 
 struct Args {
     path: String,
@@ -32,39 +24,20 @@ fn parse_args() -> Args {
 
 fn main() {
     let path = parse_args().path;
-    let path = CString::new(path).expect("path contains null characters");
 
-    unsafe {
-        check("initializing library", raw::funcs::git_libgit2_init());
+    let repo = Repository::open(&path).expect("openning repository");
 
-        let mut repo = ptr::null_mut();
-        check(
-            "opening repository",
-            raw::funcs::git_repository_open(&mut repo, path.as_ptr()),
-        );
+    let commit_oid = repo
+        .reference_name_to_oid("HEAD")
+        .expect("looking up 'HEAD' reference");
 
-        let c_name = b"HEAD\0".as_ptr() as *const c_char;
-        let oid = {
-            let mut oid = mem::MaybeUninit::uninit();
-            check(
-                "looking up HEAD",
-                raw::funcs::git_reference_name_to_id(oid.as_mut_ptr(), repo, c_name),
-            );
-            oid.assume_init()
-        };
+    let commit = repo.find_commit(&commit_oid).expect("looking up commit");
 
-        let mut commit = ptr::null_mut();
-        check(
-            "looking up commit",
-            raw::funcs::git_commit_lookup(&mut commit, repo, &oid),
-        );
-
-        show_commit(commit);
-
-        raw::funcs::git_commit_free(commit);
-
-        raw::funcs::git_repository_free(repo);
-
-        check("shutting down library", raw::funcs::git_libgit2_shutdown());
-    }
+    let author = commit.author();
+    println!(
+        "{} <{}>\n",
+        author.name().unwrap_or("(none)"),
+        author.email().unwrap_or("none")
+    );
+    println!("{}", commit.message().unwrap_or("(none)"));
 }
